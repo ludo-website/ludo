@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Ludo.Api/Ludo.Api.csproj" />
+  <Project Path="Ludo.Database/Ludo.Database.csproj" />
+  <Project Path="Ludo.Infrastructure/Ludo.Infrastructure.csproj" />
+  <Project Path="Ludo.Services/Ludo.Services.csproj" />
+</Solution>

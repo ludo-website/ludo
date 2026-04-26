@@ -1,0 +1,28 @@
+services:
+    db:
+        image: postgres:13.2-alpine
+        ports:
+            - 5432:5432
+        environment:
+            POSTGRES_DB: ludo
+            POSTGRES_USER: ludo_admin
+            POSTGRES_PASSWORD: not_admin
+        volumes:
+            - db:/var/lib/postgresql/data
+        networks:
+            - db-admin
+
+    adminer:
+        image: adminer
+        ports:
+            - 8080:8080
+        networks:
+            - db-admin
+        depends_on:
+            - db
+
+volumes:
+    db:
+
+networks:
+    db-admin:
