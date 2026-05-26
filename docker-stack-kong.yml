@@ -1,0 +1,141 @@
+services:
+    api:
+        image: silviaalex/ludo-api
+        environment:
+            ASPNETCORE_HTTP_PORTS: 5000
+            IO_BASE_ADDRESS: http://io:5009
+        ports:
+            - 5000:5000
+        networks:
+            - api-network
+            - internal
+            - monitoring
+        depends_on:
+            - io
+        deploy:
+            replicas: 1
+    auth:
+        image: silviaalex/ludo-auth
+        environment:
+            ASPNETCORE_HTTP_PORTS: 5005
+            IO_BASE_ADDRESS: http://io:5009
+        ports:
+            - 5005:5005
+        networks:
+            - auth-network
+            - internal
+            - monitoring
+        depends_on:
+            - io
+        deploy:
+            replicas: 1
+    io:
+        image: silviaalex/ludo-io
+        environment:
+            ASPNETCORE_HTTP_PORTS: 5009
+            DATABASE: "Server=db;Port=5432;Database=ludo;User Id=ludo_admin;Password=not_admin;"
+        networks:
+            - api-network
+            - auth-network
+            - db-network
+            - monitoring
+        depends_on:
+            - db
+        deploy:
+            placement:
+                constraints:
+                    - "node.role==manager"
+    db:
+        image: postgres:13.2-alpine
+        environment:
+            POSTGRES_USER: ludo_admin
+            POSTGRES_PASSWORD: not_admin
+            POSTGRES_DB: ludo
+        networks:
+            - db-admin
+            - db-network
+        volumes:
+            - db-vol:/var/lib/postgresql/data
+        deploy:
+            placement:
+                constraints: [node.role == manager]
+    adminer:
+        image: adminer:5.4.2
+        ports:
+            - 8080:8080
+        networks:
+            - db-admin
+            - internal
+        depends_on:
+            - db
+    kong:
+        image: kong:3.8.0
+        volumes:
+            - ./Kong:/usr/local/kong/declarative
+        environment:
+            KONG_DATABASE: 'off'
+            KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+            KONG_PROXY_ACCESS_LOG: /dev/stdout
+            KONG_ADMIN_ACCESS_LOG: /dev/stdout
+            KONG_PROXY_ERROR_LOG: /dev/stderr
+            KONG_ADMIN_ERROR_LOG: /dev/stderr
+            KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+        ports:
+            - 80:8000
+            - 443:8443
+            - 8001:8001
+            - 8444:8444
+        networks:
+            - internal
+        deploy:
+            placement:
+                constraints: [node.role == manager]
+    prometheus:
+        image: prom/prometheus:v3.11.3
+        volumes:
+            - ./Prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        ports:
+            - 9090:9090
+        networks:
+            - monitoring
+        deploy:
+            placement:
+                constraints: [node.role == manager]
+    node_exporter:
+        image: prom/node-exporter:v1.11.1
+        deploy:
+            mode: global
+        volumes:
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /:/rootfs:ro
+        command:
+            - '--path.procfs=/host/proc'
+            - '--path.rootfs=/rootfs'
+            - '--path.sysfs=/host/sys'
+            - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+        ports:
+            - 9100:9100
+        networks:
+            - monitoring
+    grafana:
+        image: grafana/grafana
+        volumes:
+            - grafana-volume:/var/lib/grafana
+        ports:
+            - 3000:3000
+        deploy:
+            placement:
+                constraints: [node.role == manager]
+
+volumes:
+    db-vol:
+    grafana-volume:
+
+networks:
+    api-network:
+    auth-network:
+    db-admin:
+    db-network:
+    internal:
+    monitoring:

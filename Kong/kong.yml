@@ -1,0 +1,23 @@
+_format_version: "2.1"
+
+services:
+  - name: api
+    url: http://api:5000/api
+    routes:
+      - name: api-service-route
+        paths:
+          - /api
+
+  - name: auth
+    url: http://auth:5005/auth
+    routes:
+      - name: auth-service-route
+        paths:
+          - /auth
+          
+  - name: db-adminer
+    url: http://adminer:8080
+    routes:
+      - name: adminer-service
+        paths:
+          - /adminer
